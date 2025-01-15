@@ -16,73 +16,9 @@
 #include "camera.h"
 #include "keyboard.h"
 #include "controls.h"
-#include "util.h"
+#include "shader.h"
 
 uint64_t last_time = 0;
-
-void check_compile_error_shd(GLuint shader, const char* type) {
-    int success;
-    char infoLog[1024];
-    if (strcmp(type, "PROGRAM") != 0) {
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            log_error("Shader compilation error of type: %s, %s", type, infoLog);
-        }
-    } else {
-        glGetProgramiv(shader, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            log_error("Shader program linking error of type: %s, %s", type, infoLog);
-        }
-    }
-}
- 
-GLuint load_shader(const char* vertex_path, const char* fragment_path) {
-    GLuint id;
-    const char* vertex_code = read_file_into_char(vertex_path);
-    const char* fragment_code = read_file_into_char(fragment_path);
-    uint32_t vertex, fragment;
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vertex_code, NULL);
-    glCompileShader(vertex);
-    check_compile_error_shd(vertex, "VERTEX");
-    fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fragment_code, NULL);
-    glCompileShader(fragment);
-    check_compile_error_shd(fragment, "FRAGMENT");
-    id = glCreateProgram();
-    glAttachShader(id, vertex);
-    glAttachShader(id, fragment);
-    glLinkProgram(id);
-    check_compile_error_shd(id, "PROGRAM");
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
- 
-    return id;
-}
- 
-void shader_use(GLuint shd) {
-    glUseProgram(shd);
-}
- 
-void shader_set_mat4(GLuint shd, const char* name, mat4 mat) {
-    glUniformMatrix4fv(glGetUniformLocation(shd, name), 1, GL_FALSE, (float*)mat);
-}
- 
-void shader_set_vec4(GLuint shd, const char* name, vec4 vec) {
-    glUniform4f(glGetUniformLocation(shd, name), vec[0], vec[1], vec[2], vec[3]);
-}
-
-typedef struct {
-    mat4 u_model;
-    mat4 u_projection;
-    mat4 u_view;
-} transform_params_t;
-
-typedef struct {
-    vec4 tint;
-} colour_params_t;
 
 void key_bindings(controls_t *controls) {
     controls->forward = (action_t){{SDLK_W}, 2, 0};
@@ -129,7 +65,7 @@ int main() {
 
     glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, camera.projection);
 
-    GLuint shader_program = load_shader("../shaders/quad.vert", "../shaders/quad.frag");
+    GLuint shd = load_shader("../shaders/quad.vert", "../shaders/quad.frag");
 
     float vertices[] = {
         -0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f, 1.0f,
@@ -170,10 +106,9 @@ int main() {
     bool open = true;
     SDL_Event event;
 
-    transform_params_t vs_params;
-    glm_mat4_identity(vs_params.u_model);
-    glm_mat4_copy(camera.view, vs_params.u_view);
-    glm_mat4_copy(camera.projection, vs_params.u_projection);
+    mat4 u_model;
+
+    glm_mat4_identity(u_model);
     float angle = 0.0f;
 
     float delta_time;
@@ -182,8 +117,8 @@ int main() {
         delta_time = (float)stm_sec(stm_laptime(&last_time));
 
         angle += 0.1f;
-        glm_mat4_identity(vs_params.u_model);
-        glm_rotate_y(vs_params.u_model, angle, vs_params.u_model);
+        glm_mat4_identity(u_model);
+        glm_rotate_y(u_model, angle, u_model);
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
                 open = false;
@@ -196,21 +131,16 @@ int main() {
         }
 
         camera_handle_input(&camera, controls, delta_time);
-        glm_mat4_copy(camera.view, vs_params.u_view);
-        glm_mat4_copy(camera.projection, vs_params.u_projection);
 
         glm_lookat(camera.position, camera.target, camera.up, camera.view);
-        glm_mat4_copy(camera.view, vs_params.u_view);
-        glm_mat4_copy(camera.projection, vs_params.u_projection);
-        // glm_lookat(camera.position, camera.target, camera.up, camera.view);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        shader_use(shader_program);
-        shader_set_mat4(shader_program, "u_model", vs_params.u_model);
-        shader_set_mat4(shader_program, "u_view", camera.view);
-        shader_set_mat4(shader_program, "u_projection", camera.projection);
+        shader_use(shd);
+        shader_set_mat4(shd, "u_model", u_model);
+        shader_set_mat4(shd, "u_view", camera.view);
+        shader_set_mat4(shd, "u_projection", camera.projection);
 
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
@@ -222,7 +152,7 @@ int main() {
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
-    glDeleteProgram(shader_program);
+    glDeleteProgram(shd);
 
     SDL_GL_DestroyContext(context);
     SDL_DestroyWindow(window);
