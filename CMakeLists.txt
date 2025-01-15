@@ -11,13 +11,16 @@ find_package(OpenGL REQUIRED)
 # Source files
 set(SOURCES
     vendor/log/log.c
+    vendor/glad/glad.c
+    
     src/main.c
+    src/camera.c
+    src/keyboard.c
 )
 
 # Include directories for Sokol and shaders
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/sokol/
 )
 
 # Add executable
