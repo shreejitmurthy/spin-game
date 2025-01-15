@@ -23,6 +23,7 @@ set(SOURCES
 # Include directories for Sokol and shaders
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/
+    ${CMAKE_CURRENT_SOURCE_DIR}/res/
 )
 
 # Add executable
