@@ -15,40 +15,10 @@
 
 #include "camera.h"
 #include "keyboard.h"
+#include "controls.h"
+#include "util.h"
 
 uint64_t last_time = 0;
-
-char* read_file_into_char(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        log_error("failed to open file");
-        return NULL;
-    }
- 
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
- 
-    char* buffer = (char*)malloc(file_size + 1);
-    if (buffer == NULL) {
-        log_error("memory alloc failed");
-        fclose(file);
-        return NULL;
-    }
- 
-    size_t bytes_read = fread(buffer, 1, file_size, file);
-    if (bytes_read != file_size) {
-        log_error("error reading file");
-        free(buffer);
-        fclose(file);
-        return NULL;
-    }
- 
-    buffer[bytes_read] = '\0';
- 
-    fclose(file);
-    return buffer;
-}
 
 void check_compile_error_shd(GLuint shader, const char* type) {
     int success;
@@ -114,11 +84,21 @@ typedef struct {
     vec4 tint;
 } colour_params_t;
 
+void key_bindings(controls_t *controls) {
+    controls->forward = (action_t){{SDLK_W}, 2, 0};
+    controls->back = (action_t){{SDLK_S}, 2, 0};
+    controls->left = (action_t){{SDLK_A}, 2, 0};
+    controls->right = (action_t){{SDLK_D}, 2, 0};
+}
+
 int main() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         log_error("SDL initialization failed");
         return -1;
     }
+
+    controls_t controls;
+    init_controls(&controls, key_bindings);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -215,7 +195,7 @@ int main() {
             }
         }
 
-        camera_handle_input(&camera, delta_time);
+        camera_handle_input(&camera, controls, delta_time);
         glm_mat4_copy(camera.view, vs_params.u_view);
         glm_mat4_copy(camera.projection, vs_params.u_projection);
 

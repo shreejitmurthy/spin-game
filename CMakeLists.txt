@@ -12,10 +12,11 @@ find_package(OpenGL REQUIRED)
 set(SOURCES
     vendor/log/log.c
     vendor/glad/glad.c
-    
+
     src/main.c
     src/camera.c
     src/keyboard.c
+    src/controls.c
 )
 
 # Include directories for Sokol and shaders

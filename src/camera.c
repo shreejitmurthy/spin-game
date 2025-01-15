@@ -20,16 +20,16 @@ void camera_move(camera_t* camera, vec3 movement, float delta_time) {
     glm_vec3_add(camera->target, delta, camera->target);
 }
 
-void camera_handle_input(camera_t* camera, float delta_time) {
+void camera_handle_input(camera_t* camera, controls_t controls, float delta_time) {
     vec3 forward, right, movement = {0.0f, 0.0f, 0.0f};
     glm_vec3_sub(camera->target, camera->position, forward);
     glm_vec3_normalize(forward);
     glm_vec3_crossn(forward, camera->up, right);
 
-    if (keyboard_down(SDLK_W)) glm_vec3_add(movement, forward, movement);
-    if (keyboard_down(SDLK_S)) glm_vec3_sub(movement, forward, movement);
-    if (keyboard_down(SDLK_A)) glm_vec3_sub(movement, right, movement);
-    if (keyboard_down(SDLK_D)) glm_vec3_add(movement, right, movement);
+    if (action_key_down(controls.forward)) glm_vec3_add(movement, forward, movement);
+    if (action_key_down(controls.back))    glm_vec3_sub(movement, forward, movement);
+    if (action_key_down(controls.left))    glm_vec3_sub(movement, right, movement);
+    if (action_key_down(controls.right))   glm_vec3_add(movement, right, movement);
 
     if (!glm_vec3_eqv(movement, (vec3){0.0f, 0.0f, 0.0f})) {
         glm_vec3_normalize(movement);
