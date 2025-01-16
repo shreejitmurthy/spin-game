@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stddef.h>
 
 #define SOKOL_TIME_IMPL
 #include <sokol_time.h>
@@ -17,6 +18,7 @@
 #include "controls.h"
 #include "shader.h"
 #include "texture.h"
+#include "actor.h"
 
 #include <stb_image.h>
 
@@ -40,6 +42,8 @@ int main() {
 
     controls_t controls;
     init_controls(&controls, key_bindings);
+
+    vec3 global_scale = {0.5f, 0.5f, 0.5f};
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -65,40 +69,34 @@ int main() {
 
     SDL_GL_SetSwapInterval(1);
 
-    glEnable(GL_BLEND | GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
-    camera_t camera = camera_init((vec3){0.0f, 0.0f, 3.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f});
-    camera.speed = 100.0f;
+    camera_t camera = init_camera((vec3){0.0f, 0.0f, 3.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f});
+    camera.speed = 50.0f;
     camera.sensitivity = 0.08f;
-
-    // glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f, camera.projection);
     glm_perspective(glm_rad(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f, camera.projection);
 
     GLuint shd = load_shader("../shaders/texture.vert", "../shaders/texture.frag");
+    texture_t enemy_texture = load_texture_raw(enemy_data, ENEMY_FRAME_WIDTH, ENEMY_FRAME_HEIGHT);
+    actor_t enemy = create_actor("enemy");
+    glm_vec3_copy((vec3){0.f, 0.f, 0.f}, enemy.position);
 
-    texture_t enemy = load_texture_raw(enemy_data, ENEMY_FRAME_WIDTH, ENEMY_FRAME_HEIGHT);
+    actor_t enemy1 = create_actor("enemy1");
+    glm_vec3_copy((vec3){50.f, 0.f, 0.f}, enemy1.position);
 
     bool open = true;
     SDL_Event event;
 
-    mat4 u_model;
-    glm_mat4_identity(u_model);
-    float angle = 0.0f;
-    
     float delta_time;
-
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     SDL_SetWindowRelativeMouseMode(window, true);
 
     while (open) {
         delta_time = (float)stm_sec(stm_laptime(&last_time));
 
-        // angle += 0.1f;
-        glm_mat4_identity(u_model);
-        glm_rotate_y(u_model, angle, u_model);
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
                 open = false;
@@ -118,21 +116,28 @@ int main() {
         glm_lookat(camera.position, camera.target, camera.up, camera.view);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader_use(shd);
-        shader_set_mat4(shd, "u_model", u_model);
+        use_shader(shd);
+
         shader_set_mat4(shd, "u_view", camera.view);
         shader_set_mat4(shd, "u_projection", camera.projection);
         shader_set_vec4(shd, "u_tint", (vec4){1.f, 1.f, 1.f, 1.f});
 
-        draw_texture(enemy);
+        update_actors(&enemy, &enemy1, NULL);
+
+        actor_lookat(&enemy, camera.position, global_scale);
+        shader_set_mat4(shd, "u_model", enemy.u_model);
+        draw_texture(enemy_texture);
+
+        actor_lookat(&enemy1, camera.position, global_scale);
+        shader_set_mat4(shd, "u_model", enemy1.u_model);
+        draw_texture(enemy_texture);
 
         SDL_GL_SwapWindow(window);
     }
 
-    delete_texture(enemy);
-    
+    delete_texture(enemy_texture);
     glDeleteProgram(shd);
 
     SDL_GL_DestroyContext(context);

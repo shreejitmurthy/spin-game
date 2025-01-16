@@ -44,7 +44,7 @@ GLuint load_shader(const char* vertex_path, const char* fragment_path) {
     return id;
 }
 
-void shader_use(GLuint shd) {
+void use_shader(GLuint shd) {
     glUseProgram(shd);
 }
 

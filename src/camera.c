@@ -3,7 +3,7 @@
 
 #include <log/log.h>
 
-camera_t camera_init(vec3 position, vec3 target, vec3 up) {
+camera_t init_camera(vec3 position, vec3 target, vec3 up) {
     camera_t camera;
     glm_vec3_copy(position, camera.position);
     glm_vec3_copy(target, camera.target);
@@ -16,7 +16,7 @@ camera_t camera_init(vec3 position, vec3 target, vec3 up) {
     return camera;
 }
 
-void camera_move(camera_t* camera, vec3 movement, float delta_time) {
+void move_camera(camera_t* camera, vec3 movement, float delta_time) {
     vec3 delta;
     glm_vec3_scale(movement, camera->speed * delta_time, delta);
 
@@ -41,7 +41,7 @@ void camera_handle_input(camera_t* camera, controls_t controls, float delta_time
         glm_vec3_normalize(movement);
     }
 
-    camera_move(camera, movement, delta_time);
+    move_camera(camera, movement, delta_time);
 }
 
 void camera_handle_mouse(camera_t *camera, float x_rel, float y_rel) {

@@ -14,11 +14,12 @@ set(SOURCES
     vendor/glad/glad.c
 
     src/main.c
-    src/camera.c
+    src/shader.c
     src/keyboard.c
     src/controls.c
-    src/shader.c
     src/texture.c
+    src/camera.c
+    src/actor.c
 )
 
 # Include directories for Sokol and shaders
