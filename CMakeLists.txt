@@ -18,6 +18,7 @@ set(SOURCES
     src/keyboard.c
     src/controls.c
     src/shader.c
+    src/texture.c
 )
 
 # Include directories for Sokol and shaders
